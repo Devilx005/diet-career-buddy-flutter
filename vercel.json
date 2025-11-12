@@ -1,5 +1,1 @@
-﻿{
-  "buildCommand": "if [ ! -d flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1; fi && export PATH=\"$PATH:$PWD/flutter/bin\" && flutter config --no-analytics && flutter doctor && flutter build web --release",
-  "outputDirectory": "build/web",
-  "installCommand": "echo 'Skipping npm install'"
-}
+﻿{"buildCommand":"if [ ! -d flutter ]; then git clone https://github.com/flutter/flutter.git -b stable --depth 1; fi && export PATH=\"$PATH:$PWD/flutter/bin\" && flutter config --no-analytics && flutter doctor && flutter build web --release","outputDirectory":"build/web","installCommand":"echo 'Skipping npm install'"}
