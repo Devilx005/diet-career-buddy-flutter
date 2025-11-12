@@ -1,0 +1,45 @@
+name: diet_career_buddy
+description: "AI-powered career guidance app for DIET students"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP requests
+  http: ^1.2.0
+
+  # Environment variables
+  flutter_dotenv: ^5.1.0
+
+  # Local storage for session persistence
+  shared_preferences: ^2.2.2
+
+  # Password hashing (optional, for enhanced security)
+  crypto: ^3.0.3
+
+  # Google Sign-In
+  google_sign_in: ^6.2.1
+
+  # UI
+  cupertino_icons: ^1.0.8
+
+  # DOWNGRADE TO STABLE VERSION
+  google_generative_ai: ^0.2.2
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
