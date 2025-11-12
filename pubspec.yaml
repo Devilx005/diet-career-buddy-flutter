@@ -41,5 +41,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  assets:
-    - .env
+  # No assets needed for Vercel deployment
+  # Using environment variables instead of .env file
