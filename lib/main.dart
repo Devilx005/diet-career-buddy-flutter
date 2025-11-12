@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;  // ✅ ADDED
 import 'login_screen.dart';
 
 import 'tech_dashboard.dart';
@@ -12,9 +13,15 @@ import 'diet_guide.dart';
 import 'interview_prep.dart';
 import 'jobs_dashboard.dart';
 
+// ✅ UPDATED: Conditional .env loading
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+
+  // Only load .env file for non-web platforms (local development)
+  if (!kIsWeb) {
+    await dotenv.load(fileName: ".env");
+  }
+
   runApp(const DIETCareerBuddyApp());
 }
 
@@ -220,7 +227,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // UPDATED: About Dialog with All Team Members
   void _showAboutDialog() {
     showDialog(
       context: context,
@@ -278,7 +284,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Divider(color: Colors.white24),
                 const SizedBox(height: 12),
 
-                // Version Info
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
@@ -288,7 +293,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Created for Section
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -318,7 +322,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Created by Section
                 const Text(
                   'Created by TY BTech DIET Students',
                   style: TextStyle(
@@ -329,7 +332,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Team Members
                 _buildTeamMember('Vinayak Kharade', '23067971242029'),
                 const SizedBox(height: 8),
                 _buildTeamMember('Prathmesh Sandim', '23067971242030'),
@@ -358,7 +360,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Helper: Build Feature Row
   Widget _buildFeatureRow(String emoji, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -372,7 +373,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Helper: Build Team Member Card
   Widget _buildTeamMember(String name, String prn) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -460,9 +460,16 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // ✅ UPDATED: Conditional API key loading
   Future<String> _callGeminiAI(String message) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) throw Exception('Gemini API key not found');
+    // For web: use environment variable, for local: use .env file
+    final apiKey = kIsWeb
+        ? const String.fromEnvironment('GEMINI_API_KEY')
+        : dotenv.env['GEMINI_API_KEY'];
+
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('Gemini API key not found');
+    }
 
     final url = Uri.parse(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey'
