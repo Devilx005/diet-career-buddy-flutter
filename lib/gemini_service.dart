@@ -3,12 +3,30 @@ import 'package:http/http.dart' as http;
 
 class GeminiService {
   // 🔑 6 SEPARATE API KEYS
-  static const String apiKey1 = 'AIzaSyBFA9N14fgqZMydbP2kHyiZXVCklFuU7mo';
-  static const String apiKey2 = 'AIzaSyC45MNVg9pZ72QV5EkESMCgPmxKw6ohzmg';
-  static const String apiKey3 = 'AIzaSyDXkrEtfOPVlxX099yFkHRsJcotvuORRgs';
-  static const String apiKey4 = 'AIzaSyBdN-6qaS-p6FVoGIii0jJi9xItQSD3m6w';
-  static const String apiKey5 = 'AIzaSyBiRG75cbPz2AbY2_vwjjuoN0O3hBIUFI4';
-  static const String apiKey6 = 'AIzaSyBBI5wY38QHf2RuaJETnnL3fb3Tmlc7pIQ';
+  static const String apiKey1 = String.fromEnvironment(
+    'API_KEY_1',
+    defaultValue: 'AIzaSyBFA9N14fgqZMydbP2kHyiZXVCklFuU7mo',
+  );
+  static const String apiKey2 = String.fromEnvironment(
+    'API_KEY_2',
+    defaultValue: 'AIzaSyC45MNVg9pZ72QV5EkESMCgPmxKw6ohzmg',
+  );
+  static const String apiKey3 = String.fromEnvironment(
+    'API_KEY_3',
+    defaultValue: 'AIzaSyDXkrEtfOPVlxX099yFkHRsJcotvuORRgs',
+  );
+  static const String apiKey4 = String.fromEnvironment(
+    'API_KEY_4',
+    defaultValue: 'AIzaSyBdN-6qaS-p6FVoGIii0jJi9xItQSD3m6w',
+  );
+  static const String apiKey5 = String.fromEnvironment(
+    'API_KEY_5',
+    defaultValue: 'AIzaSyBiRG75cbPz2AbY2_vwjjuoN0O3hBIUFI4',
+  );
+  static const String apiKey6 = String.fromEnvironment(
+    'API_KEY_6',
+    defaultValue: 'AIzaSyBBI5wY38QHf2RuaJETnnL3fb3Tmlc7pIQ',
+  );
 
   // ✅ Generate content with streaming callback
   static Future<void> _generateContentStreaming(
