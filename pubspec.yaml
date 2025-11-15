@@ -37,9 +37,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  rename_app: ^1.6.5
 
 flutter:
   uses-material-design: true
 
-  # No assets needed for Vercel deployment
-  # Using environment variables instead of .env file
+  # ✅ ADD THIS FOR LOCAL DEVELOPMENT
+  assets:
+    - .env

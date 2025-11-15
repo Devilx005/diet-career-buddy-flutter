@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;  // ✅ ADDED
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'login_screen.dart';
+import 'gemini_service.dart';
 
 import 'tech_dashboard.dart';
 import 'salary_dashboard.dart';
@@ -13,13 +12,18 @@ import 'diet_guide.dart';
 import 'interview_prep.dart';
 import 'jobs_dashboard.dart';
 
-// ✅ UPDATED: Conditional .env loading
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Only load .env file for non-web platforms (local development)
   if (!kIsWeb) {
-    await dotenv.load(fileName: ".env");
+    try {
+      await dotenv.load(fileName: ".env");
+      print("✅ .env file loaded successfully");
+    } catch (e) {
+      print("⚠️ .env file not found, using environment variables: $e");
+    }
+  } else {
+    print("🌐 Running on web - using Vercel environment variables");
   }
 
   runApp(const DIETCareerBuddyApp());
@@ -31,7 +35,7 @@ class DIETCareerBuddyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DIET Career Buddy',
+      title: 'Pathify',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         primaryColor: const Color(0xFF10A37F),
@@ -93,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             Icon(Icons.school, size: 80, color: Color(0xFF10A37F)),
             SizedBox(height: 16),
-            Text('DIET Career Buddy', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text('Pathify', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             SizedBox(height: 24),
             CircularProgressIndicator(color: Color(0xFF10A37F)),
           ],
@@ -242,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'About DIET Career Buddy',
+                  'About Pathify',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -267,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'DIET Career Buddy is an intelligent career guidance platform designed specifically for DIET (Diploma in Information and Educational Technology) students.',
+                  'Pathify is an intelligent career guidance platform designed specifically for DIET (Diploma in Information and Educational Technology) students.',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
@@ -436,18 +440,17 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    try {
-      final response = await _callGeminiAI(userMessage);
+    await GeminiService.chatStreaming(userMessage, (text) {
       setState(() {
-        _messages.add({'role': 'assistant', 'content': response});
-        _isLoading = false;
+        if (_messages.isNotEmpty && _messages.last['role'] == 'assistant') {
+          _messages[_messages.length - 1]['content'] = text;
+        } else {
+          _messages.add({'role': 'assistant', 'content': text});
+        }
       });
-    } catch (e) {
-      setState(() {
-        _messages.add({'role': 'assistant', 'content': 'Sorry, I encountered an error. Please try again.'});
-        _isLoading = false;
-      });
-    }
+    });
+
+    setState(() => _isLoading = false);
 
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -458,65 +461,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
-  }
-
-  // ✅ UPDATED: Conditional API key loading
-  Future<String> _callGeminiAI(String message) async {
-    // For web: use environment variable, for local: use .env file
-    final apiKey = kIsWeb
-        ? const String.fromEnvironment('GEMINI_API_KEY')
-        : dotenv.env['GEMINI_API_KEY'];
-
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('Gemini API key not found');
-    }
-
-    final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey'
-    );
-
-    final systemPrompt = '''You are DIET Career Buddy, an AI career assistant for engineering students in India, especially from DIET colleges. Provide practical career advice, salary info, learning paths, interview tips. Keep responses concise, India-focused. Mention salaries in INR (LPA). Focus on skills.''';
-
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [{'parts': [{'text': '$systemPrompt\n\nUser: $message'}]}],
-          'generationConfig': {'temperature': 0.7, 'maxOutputTokens': 1024}
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data != null &&
-            data.containsKey('candidates') &&
-            data['candidates'] != null &&
-            data['candidates'].isNotEmpty) {
-
-          final candidate = data['candidates'][0];
-
-          if (candidate != null &&
-              candidate.containsKey('content') &&
-              candidate['content'] != null &&
-              candidate['content'].containsKey('parts') &&
-              candidate['content']['parts'] != null &&
-              candidate['content']['parts'].isNotEmpty &&
-              candidate['content']['parts'][0].containsKey('text')) {
-
-            return candidate['content']['parts'][0]['text'] ?? 'No response';
-          }
-        }
-
-        return 'I couldn\'t generate a response. Please try rephrasing.';
-      } else {
-        throw Exception('API Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error: $e');
-      rethrow;
-    }
   }
 
   @override
@@ -536,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Icon(Icons.school, size: 50, color: Colors.white),
                   const SizedBox(height: 8),
-                  const Text('DIET Career Buddy', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Career Me', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text('👋 $username', style: const TextStyle(color: Colors.white70)),
                 ],
@@ -557,27 +501,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
       appBar: AppBar(
         leading: isLoggedIn ? null : const SizedBox(),
-        title: const Text('🎓 DIET Career Buddy', style: TextStyle(color: Color(0xFF10A37F), fontWeight: FontWeight.bold, fontSize: 20)),
+        title: const Text('🎓 Pathify', style: TextStyle(color: Color(0xFF10A37F), fontWeight: FontWeight.bold, fontSize: 20)),
         centerTitle: true,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Row(
-              children: [
-                Text(isLoggedIn ? '👋 $username' : '👤 Guest', style: const TextStyle(color: Colors.grey)),
-                const SizedBox(width: 12),
-                if (isLoggedIn)
-                  OutlinedButton(
-                    onPressed: _logout,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFFF6B6B),
-                      side: const BorderSide(color: Color(0xFFFF6B6B)),
-                    ),
-                    child: const Text('Logout'),
-                  ),
-              ],
+          if (isLoggedIn)
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: OutlinedButton(
+                onPressed: _logout,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFF6B6B),
+                  side: const BorderSide(color: Color(0xFFFF6B6B)),
+                ),
+                child: const Text('Logout'),
+              ),
             ),
-          ),
         ],
       ),
       body: currentDashboard == 'home' ? _buildHomePage() : _buildDashboardPage(),
