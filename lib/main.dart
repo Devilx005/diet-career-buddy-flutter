@@ -504,17 +504,12 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('🎓 Pathify', style: TextStyle(color: Color(0xFF10A37F), fontWeight: FontWeight.bold, fontSize: 20)),
         centerTitle: true,
         actions: [
-          if (isLoggedIn)
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: OutlinedButton(
-                onPressed: _logout,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF6B6B),
-                  side: const BorderSide(color: Color(0xFFFF6B6B)),
-                ),
-                child: const Text('Logout'),
-              ),
+          // ✅ CHANGE 1: Show back button when in dashboard, logout when on home
+          if (currentDashboard != 'home')
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF10A37F)),
+              onPressed: _backToHome,
+              tooltip: 'Back to Home',
             ),
         ],
       ),
@@ -716,19 +711,7 @@ class _HomeScreenState extends State<HomeScreen> {
       default: content = Center(child: Text('${currentDashboard.toUpperCase()}\nComing Soon!', textAlign: TextAlign.center, style: const TextStyle(fontSize: 20)));
     }
 
-    return Column(
-      children: [
-        Expanded(child: content),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
-            onPressed: _backToHome,
-            icon: const Icon(Icons.home),
-            label: const Text('Back to Home'),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10A37F), minimumSize: const Size(double.infinity, 50)),
-          ),
-        ),
-      ],
-    );
+    // ✅ CHANGE 2: Removed "Back to Home" button - now it's in AppBar
+    return content;
   }
 }
