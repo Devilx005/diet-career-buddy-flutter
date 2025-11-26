@@ -29,7 +29,7 @@ dependencies:
   # UI
   cupertino_icons: ^1.0.8
 
-  # DOWNGRADE TO STABLE VERSION
+  # Stable versions for other functionality
   google_generative_ai: ^0.2.2
   url_launcher: ^6.3.2
   file_picker: ^10.3.7
@@ -43,7 +43,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # ✅ ADD THIS FOR LOCAL DEVELOPMENT
+  # Use a dummy env file for web build compatibility
   assets:
-    - .env
-
+    - .envdummy
