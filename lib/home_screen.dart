@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+
 import 'gemini_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +30,18 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _downloadAndroidApk() {
+    if (kIsWeb) {
+      html.window.open('/assets/PathifyAi.apk', '_blank');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('APK download is available on the web version only.'),
+        ),
+      );
+    }
+  }
+
   void _startAnalysis() {
     final role = _selectedRole ?? _roleController.text.trim();
     if (role.isEmpty) {
@@ -47,29 +63,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Overview/skills analysis (API 1)
     GeminiService.getInterviewOverviewStreaming(role, (text) {
-      if (mounted) setState(() {
-        _overviewSection = text;
-        _loadingOverview = false;
-        _isLoading = _loadingOverview || _loadingMCQ || _loadingResources;
-      });
+      if (mounted) {
+        setState(() {
+          _overviewSection = text;
+          _loadingOverview = false;
+          _isLoading = _loadingOverview || _loadingMCQ || _loadingResources;
+        });
+      }
     });
 
     // MCQs (API 7)
     GeminiService.getInterviewMCQStreaming(role, (text) {
-      if (mounted) setState(() {
-        _mcqSection = text;
-        _loadingMCQ = false;
-        _isLoading = _loadingOverview || _loadingMCQ || _loadingResources;
-      });
+      if (mounted) {
+        setState(() {
+          _mcqSection = text;
+          _loadingMCQ = false;
+          _isLoading = _loadingOverview || _loadingMCQ || _loadingResources;
+        });
+      }
     });
 
     // Resources (API 8)
     GeminiService.getInterviewResourcesStreaming(role, (text) {
-      if (mounted) setState(() {
-        _resourcesSection = text;
-        _loadingResources = false;
-        _isLoading = _loadingOverview || _loadingMCQ || _loadingResources;
-      });
+      if (mounted) {
+        setState(() {
+          _resourcesSection = text;
+          _loadingResources = false;
+          _isLoading = _loadingOverview || _loadingMCQ || _loadingResources;
+        });
+      }
     });
   }
 
@@ -86,9 +108,33 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Web-only: Download Android App button
+            if (kIsWeb)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _downloadAndroidApk,
+                    icon: const Icon(Icons.android),
+                    label: const Text(
+                      'Download Android App (APK)',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+
             // Role input section
             Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -96,7 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Text(
                       'Enter Job Role:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -128,7 +175,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                             : const Text(
                           'Start Interview Analysis',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -140,10 +190,14 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
 
             if (_loadingOverview || _loadingMCQ || _loadingResources)
-              const Center(child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: CircularProgressIndicator(color: Color(0xFF6366F1)),
-              )),
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF6366F1),
+                  ),
+                ),
+              ),
 
             if (_overviewSection.isNotEmpty ||
                 _mcqSection.isNotEmpty ||
@@ -168,8 +222,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       _loadingOverview
-                          ? const Text("Loading overview/skills...", style: TextStyle(color: Colors.white70))
-                          : SelectableText(_overviewSection, style: const TextStyle(color: Colors.white)),
+                          ? const Text(
+                        "Loading overview/skills...",
+                        style: TextStyle(color: Colors.white70),
+                      )
+                          : SelectableText(
+                        _overviewSection,
+                        style: const TextStyle(color: Colors.white),
+                      ),
 
                       const SizedBox(height: 20),
 
@@ -184,8 +244,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       _loadingMCQ
-                          ? const Text("Loading MCQs...", style: TextStyle(color: Colors.white70))
-                          : SelectableText(_mcqSection, style: const TextStyle(color: Colors.white)),
+                          ? const Text(
+                        "Loading MCQs...",
+                        style: TextStyle(color: Colors.white70),
+                      )
+                          : SelectableText(
+                        _mcqSection,
+                        style: const TextStyle(color: Colors.white),
+                      ),
 
                       const SizedBox(height: 20),
 
@@ -200,8 +266,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       _loadingResources
-                          ? const Text("Loading resources...", style: TextStyle(color: Colors.white70))
-                          : SelectableText(_resourcesSection, style: const TextStyle(color: Colors.white)),
+                          ? const Text(
+                        "Loading resources...",
+                        style: TextStyle(color: Colors.white70),
+                      )
+                          : SelectableText(
+                        _resourcesSection,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ],
                   ),
                 ),
