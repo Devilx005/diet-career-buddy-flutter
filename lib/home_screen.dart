@@ -142,8 +142,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Text(
                       'Enter Job Role:',
-                      style:
-                      TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -223,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 8),
                       _loadingOverview
                           ? const Text(
-                        "Loading overview/skills...",
+                        'Loading overview/skills...',
                         style: TextStyle(color: Colors.white70),
                       )
                           : SelectableText(
@@ -245,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 8),
                       _loadingMCQ
                           ? const Text(
-                        "Loading MCQs...",
+                        'Loading MCQs...',
                         style: TextStyle(color: Colors.white70),
                       )
                           : SelectableText(
@@ -267,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 8),
                       _loadingResources
                           ? const Text(
-                        "Loading resources...",
+                        'Loading resources...',
                         style: TextStyle(color: Colors.white70),
                       )
                           : SelectableText(
