@@ -46,4 +46,4 @@ flutter:
   # Use a dummy env file for web build compatibility
   assets:
     - .env
-    - ..envdummy
+    - .envdummy
