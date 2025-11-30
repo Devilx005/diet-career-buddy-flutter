@@ -51,7 +51,7 @@ class _JobsDashboardState extends State<JobsDashboard> {
         _errorMessage = 'No jobs found. Try different keywords!';
       } else {
         _jobs = liveJobs;
-        _selectedJob = liveJobs.first; // Auto-select first job
+        _selectedJob = liveJobs.first;
       }
     });
   }
@@ -61,51 +61,66 @@ class _JobsDashboardState extends State<JobsDashboard> {
     final isMobile = MediaQuery.of(context).size.width < 900;
 
     return Scaffold(
-      backgroundColor: Color(0xFF1E1E1E),
-      body: Column(
-        children: [
-          // LinkedIn-style Header
-          _buildHeader(),
-
-          // Search Bar
-          _buildSearchBar(),
-
-          // Main Content
-          Expanded(
-            child: isMobile
-                ? _buildMobileLayout()
-                : _buildDesktopLayout(),
-          ),
-        ],
+      backgroundColor: const Color(0xFF1E1E1E),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildSearchBar(),
+            Expanded(
+              child: isMobile ? _buildMobileLayout() : _buildDesktopLayout(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
+    final canPop = Navigator.canPop(context);
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Color(0xFF2D2D2D),
-        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Color(0xFF0A66C2),
-              borderRadius: BorderRadius.circular(4),
+          if (canPop)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ),
-            child: Icon(Icons.work, color: Colors.white, size: 24),
-          ),
-          SizedBox(width: 12),
-          Text(
-            'Jobs',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.work, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Jobs',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -114,79 +129,144 @@ class _JobsDashboardState extends State<JobsDashboard> {
 
   Widget _buildSearchBar() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color(0xFF2D2D2D),
-        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
+        color: const Color(0xFF2D2D2D),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.withOpacity(0.1)),
+        ),
       ),
-      child: Row(
-        children: [
-          // Search Input
-          Expanded(
-            flex: 3,
-            child: Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.grey.withOpacity(0.3)),
-              ),
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search job titles or companies',
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
 
-          // Location Input
-          Expanded(
-            flex: 2,
-            child: Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.grey.withOpacity(0.3)),
-              ),
-              child: TextField(
-                controller: _locationController,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'City or region',
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                  prefixIcon: Icon(Icons.location_on, color: Colors.grey, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          if (isMobile) {
+            return Column(
+              children: [
+                _buildSearchInput(isMobile),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _buildLocationInput(isMobile)),
+                    const SizedBox(width: 12),
+                    _buildSearchButton(isMobile),
+                  ],
                 ),
-              ),
-            ),
-          ),
-          SizedBox(width: 12),
+              ],
+            );
+          }
 
-          // Search Button
-          ElevatedButton(
-            onPressed: _isLoading ? null : _searchJobs,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF0A66C2),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              elevation: 0,
-            ),
-            child: Text(
-              'Search',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-            ),
+          return Row(
+            children: [
+              Expanded(flex: 3, child: _buildSearchInput(isMobile)),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _buildLocationInput(isMobile)),
+              const SizedBox(width: 12),
+              _buildSearchButton(isMobile),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchInput(bool isMobile) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1.5),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isMobile ? 14 : 15,
+        ),
+        decoration: InputDecoration(
+          hintText: isMobile ? 'Job title or company' : 'Search job titles or companies',
+          hintStyle: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: isMobile ? 13 : 14,
+          ),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF2563EB), size: 20),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 16,
+            vertical: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationInput(bool isMobile) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1.5),
+      ),
+      child: TextField(
+        controller: _locationController,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isMobile ? 14 : 15,
+        ),
+        decoration: InputDecoration(
+          hintText: isMobile ? 'Location' : 'City or region',
+          hintStyle: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: isMobile ? 13 : 14,
+          ),
+          prefixIcon: const Icon(Icons.location_on, color: Color(0xFF2563EB), size: 20),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 8 : 16,
+            vertical: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchButton(bool isMobile) {
+    return Container(
+      height: 48,
+      width: isMobile ? 100 : null,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2563EB).withOpacity(0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _searchJobs,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 28),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(
+          'Search',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: isMobile ? 14 : 15,
+            color: Colors.white,
+          ),
+        ),
       ),
     );
   }
@@ -197,9 +277,19 @@ class _JobsDashboardState extends State<JobsDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color(0xFF0A66C2)),
-            SizedBox(height: 16),
-            Text('Finding jobs...', style: TextStyle(color: Colors.grey)),
+            const SizedBox(
+              width: 50,
+              height: 50,
+              child: CircularProgressIndicator(
+                color: Color(0xFF2563EB),
+                strokeWidth: 3,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Finding jobs...',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+            ),
           ],
         ),
       );
@@ -210,9 +300,23 @@ class _JobsDashboardState extends State<JobsDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.work_off, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(_errorMessage!, style: TextStyle(color: Colors.grey)),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D2D2D).withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.work_off,
+                size: 64,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _errorMessage!,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+            ),
           ],
         ),
       );
@@ -223,18 +327,39 @@ class _JobsDashboardState extends State<JobsDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Search for jobs', style: TextStyle(color: Colors.grey, fontSize: 16)),
-            SizedBox(height: 8),
-            Text('Enter job title and location', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D2D2D).withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.search,
+                size: 64,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Search for jobs',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Enter job title and location',
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+            ),
           ],
         ),
       );
     }
 
     return ListView.builder(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(16),
       itemCount: _jobs.length,
       itemBuilder: (context, index) {
         final job = _jobs[index];
@@ -245,8 +370,15 @@ class _JobsDashboardState extends State<JobsDashboard> {
 
   Widget _buildDesktopLayout() {
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: Color(0xFF0A66C2)),
+      return const Center(
+        child: SizedBox(
+          width: 50,
+          height: 50,
+          child: CircularProgressIndicator(
+            color: Color(0xFF2563EB),
+            strokeWidth: 3,
+          ),
+        ),
       );
     }
 
@@ -255,11 +387,26 @@ class _JobsDashboardState extends State<JobsDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D2D2D).withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.search,
+                size: 64,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               _errorMessage ?? 'Search for jobs to get started',
-              style: TextStyle(color: Colors.grey, fontSize: 16),
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -268,24 +415,26 @@ class _JobsDashboardState extends State<JobsDashboard> {
 
     return Row(
       children: [
-        // Left Panel - Job List
         Expanded(
           flex: 2,
           child: Container(
             decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.grey.withOpacity(0.2))),
+              color: const Color(0xFF2D2D2D).withOpacity(0.3),
+              border: Border(
+                right: BorderSide(color: Colors.grey.withOpacity(0.1)),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: Text(
-                    '${_jobs.length} jobs',
+                    '${_jobs.length} jobs found',
                     style: TextStyle(
-                      color: Colors.grey,
+                      color: Colors.grey.shade600,
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -303,8 +452,6 @@ class _JobsDashboardState extends State<JobsDashboard> {
             ),
           ),
         ),
-
-        // Right Panel - Job Details
         Expanded(
           flex: 3,
           child: _selectedJob != null
@@ -312,7 +459,7 @@ class _JobsDashboardState extends State<JobsDashboard> {
               : Center(
             child: Text(
               'Select a job to view details',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.grey.shade600),
             ),
           ),
         ),
@@ -323,13 +470,13 @@ class _JobsDashboardState extends State<JobsDashboard> {
   Widget _buildJobListItem(Map<String, dynamic> job, bool isSelected) {
     return Container(
       decoration: BoxDecoration(
-        color: isSelected ? Color(0xFF0A66C2).withOpacity(0.1) : null,
+        color: isSelected ? const Color(0xFF2563EB).withOpacity(0.1) : null,
         border: Border(
           left: BorderSide(
-            color: isSelected ? Color(0xFF0A66C2) : Colors.transparent,
+            color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
             width: 3,
           ),
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          bottom: BorderSide(color: Colors.grey.withOpacity(0.1)),
         ),
       ),
       child: Material(
@@ -341,7 +488,7 @@ class _JobsDashboardState extends State<JobsDashboard> {
             });
           },
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -349,30 +496,38 @@ class _JobsDashboardState extends State<JobsDashboard> {
                   job['title'] ?? 'Job Title',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? Color(0xFF0A66C2) : Colors.white,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? const Color(0xFF2563EB) : Colors.white,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   job['company'] ?? 'Company',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
-                SizedBox(height: 6),
-                Text(
-                  job['location'] ?? 'Location',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: Colors.grey.shade700),
+                    const SizedBox(width: 4),
+                    Text(
+                      job['location'] ?? 'Location',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     _buildSmallTag(job['type'] ?? 'Full-time'),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
+                    Icon(Icons.access_time, size: 12, color: Colors.grey.shade700),
+                    const SizedBox(width: 4),
                     Text(
                       job['posted'] ?? 'Recently',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                     ),
                   ],
                 ),
@@ -386,56 +541,62 @@ class _JobsDashboardState extends State<JobsDashboard> {
 
   Widget _buildJobDetails(Map<String, dynamic> job) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Job Title
           Text(
             job['title'] ?? 'Job Title',
-            style: TextStyle(
-              fontSize: 28,
+            style: const TextStyle(
+              fontSize: 32,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          SizedBox(height: 12),
-
-          // Company Info
+          const SizedBox(height: 20),
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
-                  color: Color(0xFF0A66C2),
-                  borderRadius: BorderRadius.circular(4),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.business, color: Colors.white, size: 24),
+                child: const Icon(Icons.business, color: Colors.white, size: 28),
               ),
-              SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    job['company'] ?? 'Company',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      job['company'] ?? 'Company',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  Text(
-                    job['location'] ?? 'Location',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          job['location'] ?? 'Location',
+                          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          SizedBox(height: 24),
-
-          // Job Meta Info
+          const SizedBox(height: 24),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -446,36 +607,44 @@ class _JobsDashboardState extends State<JobsDashboard> {
                 _buildMetaItem(Icons.payments_outlined, job['salary'] ?? ''),
             ],
           ),
-          SizedBox(height: 24),
-
+          const SizedBox(height: 32),
           Divider(color: Colors.grey.withOpacity(0.2)),
-          SizedBox(height: 24),
-
-          // About the job
-          Text(
+          const SizedBox(height: 32),
+          const Text(
             'About the job',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
             job['description'] ?? 'No description available',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               color: Colors.white70,
-              height: 1.6,
+              height: 1.7,
             ),
           ),
-          SizedBox(height: 32),
-
-          // Apply Button
+          const SizedBox(height: 40),
           if (job['applyLink'] != null && job['applyLink'].isNotEmpty)
-            SizedBox(
+            Container(
               width: double.infinity,
-              height: 50,
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
               child: ElevatedButton(
                 onPressed: () async {
                   final url = Uri.parse(job['applyLink']);
@@ -484,16 +653,19 @@ class _JobsDashboardState extends State<JobsDashboard> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF0A66C2),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 0,
                 ),
-                child: Text(
+                child: const Text(
                   'Apply on company website',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -504,11 +676,11 @@ class _JobsDashboardState extends State<JobsDashboard> {
 
   Widget _buildJobCardMobile(Map<String, dynamic> job) {
     return Container(
-      margin: EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Color(0xFF2D2D2D),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        color: const Color(0xFF2D2D2D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2), width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -521,40 +693,48 @@ class _JobsDashboardState extends State<JobsDashboard> {
               ),
             );
           },
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   job['title'] ?? 'Job Title',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   job['company'] ?? 'Company',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  job['location'] ?? 'Location',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: Colors.grey.shade700),
+                    const SizedBox(width: 4),
+                    Text(
+                      job['location'] ?? 'Location',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     _buildSmallTag(job['type'] ?? 'Full-time'),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 10),
+                    Icon(Icons.access_time, size: 12, color: Colors.grey.shade700),
+                    const SizedBox(width: 4),
                     Text(
                       job['posted'] ?? 'Recently',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                     ),
                   ],
                 ),
@@ -568,19 +748,20 @@ class _JobsDashboardState extends State<JobsDashboard> {
 
   Widget _buildMetaItem(IconData icon, String text) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          SizedBox(width: 8),
+          Icon(icon, size: 18, color: const Color(0xFF2563EB)),
+          const SizedBox(width: 8),
           Text(
             text,
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),
@@ -589,14 +770,18 @@ class _JobsDashboardState extends State<JobsDashboard> {
 
   Widget _buildSmallTag(String text) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(4),
+        color: const Color(0xFF2563EB).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+        style: const TextStyle(
+          fontSize: 12,
+          color: Color(0xFF2563EB),
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -611,97 +796,120 @@ class JobDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1E1E1E),
+      backgroundColor: const Color(0xFF1E1E1E),
       appBar: AppBar(
-        backgroundColor: Color(0xFF2D2D2D),
+        backgroundColor: const Color(0xFF2D2D2D),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Job Details', style: TextStyle(color: Colors.white)),
+        title: const Text('Job Details', style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               job['title'] ?? 'Job Title',
-              style: TextStyle(
-                fontSize: 24,
+              style: const TextStyle(
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: Color(0xFF0A66C2),
-                    borderRadius: BorderRadius.circular(4),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.business, color: Colors.white, size: 24),
+                  child: const Icon(Icons.business, color: Colors.white, size: 28),
                 ),
-                SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      job['company'] ?? 'Company',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        job['company'] ?? 'Company',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    Text(
-                      job['location'] ?? 'Location',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            job['location'] ?? 'Location',
+                            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 10,
+              runSpacing: 10,
               children: [
                 _buildTag(job['type'] ?? 'Full-time'),
                 _buildTag(job['posted'] ?? 'Recently'),
-                if (job['salary'] != 'Not specified')
-                  _buildTag(job['salary'] ?? ''),
+                if (job['salary'] != 'Not specified') _buildTag(job['salary'] ?? ''),
               ],
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 28),
             Divider(color: Colors.grey.withOpacity(0.2)),
-            SizedBox(height: 24),
-            Text(
+            const SizedBox(height: 28),
+            const Text(
               'About the job',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               job['description'] ?? 'No description available',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 15,
                 color: Colors.white70,
-                height: 1.6,
+                height: 1.7,
               ),
             ),
-            SizedBox(height: 32),
+            const SizedBox(height: 36),
             if (job['applyLink'] != null && job['applyLink'].isNotEmpty)
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 50,
+                height: 54,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2563EB), Color(0xFF1E40AF)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2563EB).withOpacity(0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: () async {
                     final url = Uri.parse(job['applyLink']);
@@ -710,15 +918,19 @@ class JobDetailsScreen extends StatelessWidget {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0A66C2),
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Apply on company website',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -730,14 +942,19 @@ class JobDetailsScreen extends StatelessWidget {
 
   Widget _buildTag(String text) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(4),
+        color: const Color(0xFF2563EB).withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.3)),
       ),
       child: Text(
         text,
-        style: TextStyle(color: Colors.white70, fontSize: 13),
+        style: const TextStyle(
+          color: Color(0xFF2563EB),
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

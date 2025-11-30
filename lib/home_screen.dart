@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
-
 import 'gemini_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,18 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _roleController.dispose();
     super.dispose();
-  }
-
-  void _downloadAndroidApk() {
-    if (kIsWeb) {
-      html.window.open('/assets/PathifyAi.apk', '_blank');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('APK download is available on the web version only.'),
-        ),
-      );
-    }
   }
 
   void _startAnalysis() {
@@ -108,28 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Web-only: Download Android App button
-            if (kIsWeb)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _downloadAndroidApk,
-                    icon: const Icon(Icons.android),
-                    label: const Text(
-                      'Download Android App (APK)',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ),
-
             // Role input section
             Card(
               shape: RoundedRectangleBorder(

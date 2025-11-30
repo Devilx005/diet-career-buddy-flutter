@@ -34,11 +34,10 @@ class LoginScreen extends StatelessWidget {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomeScreen(),  // ✅ Removed const
+          builder: (context) => HomeScreen(),
         ),
       );
     }
-
   }
 }
 
@@ -234,15 +233,26 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isMobile = screenWidth < 600;
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
         child: Dialog(
           backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 40,
+            vertical: isMobile ? 24 : 40,
+          ),
           child: Container(
-            width: 460,
-            constraints: const BoxConstraints(maxHeight: 720),
+            width: isMobile ? double.infinity : 460,
+            constraints: BoxConstraints(
+              maxHeight: screenHeight * (isMobile ? 0.9 : 0.85),
+              maxWidth: isMobile ? screenWidth - 32 : 460,
+            ),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -252,7 +262,7 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                   Color(0xFF121212),
                 ],
               ),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
               border: Border.all(
                 color: const Color(0xFF10A37F).withOpacity(0.3),
                 width: 1.5,
@@ -267,10 +277,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
               child: Stack(
                 children: [
-                  // ✅ COLORFUL ANIMATED GRADIENT BACKGROUND
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
@@ -288,8 +297,6 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                       ),
                     ),
                   ),
-
-                  // ✅ COLORFUL ACCENT CIRCLES
                   Positioned(
                     top: -50,
                     right: -50,
@@ -324,17 +331,14 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                       ),
                     ),
                   ),
-
-                  // Content
                   SingleChildScrollView(
-                    padding: const EdgeInsets.all(40),
+                    padding: EdgeInsets.all(isMobile ? 24 : 40),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ✅ COLORFUL GRADIENT LOGO
                         Container(
-                          width: 80,
-                          height: 80,
+                          width: isMobile ? 70 : 80,
+                          height: isMobile ? 70 : 80,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
@@ -345,7 +349,7 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                                 Color(0xFF3B82F6),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(22),
+                            borderRadius: BorderRadius.circular(isMobile ? 18 : 22),
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(0xFF10A37F).withOpacity(0.5),
@@ -359,15 +363,13 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.auto_awesome,
-                            size: 40,
+                            size: isMobile ? 35 : 40,
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 24),
-
-                        // ✅ MULTI-COLOR GRADIENT TITLE
+                        SizedBox(height: isMobile ? 20 : 24),
                         ShaderMask(
                           shaderCallback: (bounds) => const LinearGradient(
                             colors: [
@@ -376,19 +378,17 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                               Color(0xFF3B82F6),
                             ],
                           ).createShader(bounds),
-                          child: const Text(
-                            'Pathify AIAI',
+                          child: Text(
+                            'Pathify AI',
                             style: TextStyle(
-                              fontSize: 36,
+                              fontSize: isMobile ? 30 : 36,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                               letterSpacing: -0.5,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-
-                        // Subtitle with gradient
+                        SizedBox(height: isMobile ? 10 : 12),
                         ShaderMask(
                           shaderCallback: (bounds) => LinearGradient(
                             colors: [
@@ -400,27 +400,26 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                             _showEmailLogin
                                 ? (_isSignupMode ? 'Create your account' : 'Welcome back')
                                 : 'Your AI Career Companion',
-                            style: const TextStyle(
-                              fontSize: 18,
+                            style: TextStyle(
+                              fontSize: isMobile ? 16 : 18,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                        const SizedBox(height: 8),
-
+                        SizedBox(height: isMobile ? 6 : 8),
                         if (!_showEmailLogin)
                           Text(
-                            'Unlock personalized guidance and career insights',
+                            'Unlock personalized guidance\nand career insights',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: isMobile ? 13 : 14,
                               color: Colors.grey.shade400,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                        const SizedBox(height: 36),
-
-                        _showEmailLogin ? _buildEmailForm() : _buildSocialButtons(),
+                        SizedBox(height: isMobile ? 28 : 36),
+                        _showEmailLogin ? _buildEmailForm(isMobile) : _buildSocialButtons(isMobile),
                       ],
                     ),
                   ),
@@ -433,10 +432,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildSocialButtons() {
+  Widget _buildSocialButtons(bool isMobile) {
     return Column(
       children: [
-        // ✅ COLORFUL GOOGLE BUTTON
         _buildModernButton(
           icon: Container(
             width: 24,
@@ -466,11 +464,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
             ],
           ),
           borderColor: const Color(0xFF4285F4).withOpacity(0.4),
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 20),
-
-        // ✅ REMOVED PHONE BUTTON
-
+        SizedBox(height: isMobile ? 16 : 20),
         Row(
           children: [
             Expanded(child: Divider(color: Colors.grey.shade700, thickness: 1)),
@@ -481,16 +477,14 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                 style: TextStyle(
                   color: Colors.grey.shade500,
                   fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  fontSize: isMobile ? 12 : 13,
                 ),
               ),
             ),
             Expanded(child: Divider(color: Colors.grey.shade700, thickness: 1)),
           ],
         ),
-        const SizedBox(height: 20),
-
-        // ✅ COLORFUL EMAIL BUTTON
+        SizedBox(height: isMobile ? 16 : 20),
         _buildModernButton(
           icon: const Icon(Icons.email_outlined, size: 22, color: Color(0xFF8B5CF6)),
           text: 'Continue with email',
@@ -503,10 +497,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           ),
           borderColor: const Color(0xFF8B5CF6).withOpacity(0.4),
           textColor: const Color(0xFF8B5CF6),
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 16),
-
-        // ✅ COLORFUL GUEST BUTTON
+        SizedBox(height: isMobile ? 12 : 16),
         _buildModernButton(
           icon: const Icon(Icons.person_outline, size: 22, color: Color(0xFF10A37F)),
           text: 'Continue as Guest',
@@ -519,6 +512,7 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           ),
           borderColor: const Color(0xFF10A37F).withOpacity(0.5),
           textColor: const Color(0xFF10A37F),
+          isMobile: isMobile,
         ),
       ],
     );
@@ -531,10 +525,11 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     required Gradient gradient,
     Color? borderColor,
     Color? textColor,
+    required bool isMobile,
   }) {
     return Container(
       width: double.infinity,
-      height: 56,
+      height: isMobile ? 52 : 56,
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: BorderRadius.circular(14),
@@ -561,13 +556,16 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
               children: [
                 icon,
                 const SizedBox(width: 14),
-                Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: textColor ?? Colors.white,
-                    letterSpacing: 0.3,
+                Flexible(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: isMobile ? 14 : 15,
+                      fontWeight: FontWeight.w600,
+                      color: textColor ?? Colors.white,
+                      letterSpacing: 0.3,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -578,9 +576,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildEmailForm() {
+  Widget _buildEmailForm(bool isMobile) {
     if (_isSignupMode) {
-      return _buildSignupForm();
+      return _buildSignupForm(isMobile);
     }
 
     return Column(
@@ -592,8 +590,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           icon: Icons.email_outlined,
           iconColor: const Color(0xFF8B5CF6),
           keyboardType: TextInputType.emailAddress,
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: isMobile ? 14 : 18),
         _buildModernTextField(
           controller: _passwordController,
           label: 'Password',
@@ -604,13 +603,12 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           obscureText: _obscurePassword,
           onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
           onSubmitted: (_) => _handleEmailLogin(),
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 28),
-
-        // ✅ COLORFUL GRADIENT BUTTON
+        SizedBox(height: isMobile ? 24 : 28),
         Container(
           width: double.infinity,
-          height: 54,
+          height: isMobile ? 50 : 54,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [
@@ -644,10 +642,10 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                 strokeWidth: 2.5,
               ),
             )
-                : const Text(
+                : Text(
               'Continue',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: isMobile ? 15 : 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: 0.5,
@@ -655,14 +653,16 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
             ),
           ),
         ),
-        const SizedBox(height: 20),
-
+        SizedBox(height: isMobile ? 16 : 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               'Don\'t have an account? ',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: isMobile ? 13 : 14,
+              ),
             ),
             GestureDetector(
               onTap: () => setState(() => _isSignupMode = true),
@@ -670,33 +670,35 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                 shaderCallback: (bounds) => const LinearGradient(
                   colors: [Color(0xFF10A37F), Color(0xFF8B5CF6)],
                 ).createShader(bounds),
-                child: const Text(
+                child: Text(
                   'Sign up',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: isMobile ? 13 : 14,
                   ),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-
+        SizedBox(height: isMobile ? 8 : 12),
         TextButton.icon(
           onPressed: () => setState(() => _showEmailLogin = false),
           icon: Icon(Icons.arrow_back, size: 18, color: Colors.grey.shade500),
           label: Text(
             'Back to options',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: isMobile ? 13 : 14,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSignupForm() {
+  Widget _buildSignupForm(bool isMobile) {
     return Column(
       children: [
         _buildModernTextField(
@@ -705,8 +707,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           hint: 'John Doe',
           icon: Icons.person_outline,
           iconColor: const Color(0xFF10A37F),
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: isMobile ? 14 : 18),
         _buildModernTextField(
           controller: _emailController,
           label: 'Email address',
@@ -714,8 +717,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           icon: Icons.email_outlined,
           iconColor: const Color(0xFF8B5CF6),
           keyboardType: TextInputType.emailAddress,
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: isMobile ? 14 : 18),
         _buildModernTextField(
           controller: _passwordController,
           label: 'Password',
@@ -725,8 +729,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           isPassword: true,
           obscureText: _obscurePassword,
           onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: isMobile ? 14 : 18),
         _buildModernTextField(
           controller: _confirmPasswordController,
           label: 'Confirm password',
@@ -737,12 +742,12 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           obscureText: _obscureConfirmPassword,
           onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
           onSubmitted: (_) => _handleSignup(),
+          isMobile: isMobile,
         ),
-        const SizedBox(height: 28),
-
+        SizedBox(height: isMobile ? 24 : 28),
         Container(
           width: double.infinity,
-          height: 54,
+          height: isMobile ? 50 : 54,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [
@@ -776,10 +781,10 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                 strokeWidth: 2.5,
               ),
             )
-                : const Text(
+                : Text(
               'Create account',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: isMobile ? 15 : 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: 0.5,
@@ -787,14 +792,16 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
             ),
           ),
         ),
-        const SizedBox(height: 20),
-
+        SizedBox(height: isMobile ? 16 : 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               'Already have an account? ',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              style: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: isMobile ? 13 : 14,
+              ),
             ),
             GestureDetector(
               onTap: () => setState(() => _isSignupMode = false),
@@ -802,26 +809,28 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                 shaderCallback: (bounds) => const LinearGradient(
                   colors: [Color(0xFF10A37F), Color(0xFF8B5CF6)],
                 ).createShader(bounds),
-                child: const Text(
+                child: Text(
                   'Sign in',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: isMobile ? 13 : 14,
                   ),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-
+        SizedBox(height: isMobile ? 8 : 12),
         TextButton.icon(
           onPressed: () => setState(() => _showEmailLogin = false),
           icon: Icon(Icons.arrow_back, size: 18, color: Colors.grey.shade500),
           label: Text(
             'Back to options',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+            style: TextStyle(
+              color: Colors.grey.shade500,
+              fontSize: isMobile ? 13 : 14,
+            ),
           ),
         ),
       ],
@@ -834,6 +843,7 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     required String hint,
     required IconData icon,
     required Color iconColor,
+    required bool isMobile,
     bool isPassword = false,
     bool obscureText = false,
     VoidCallback? onToggleVisibility,
@@ -861,12 +871,21 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
         obscureText: obscureText,
         keyboardType: keyboardType,
         onSubmitted: onSubmitted,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isMobile ? 14 : 15,
+        ),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          labelStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          labelStyle: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: isMobile ? 13 : 14,
+          ),
+          hintStyle: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: isMobile ? 13 : 14,
+          ),
           prefixIcon: Icon(icon, color: iconColor, size: 22),
           suffixIcon: isPassword
               ? IconButton(
@@ -879,7 +898,10 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 20,
+            vertical: isMobile ? 16 : 18,
+          ),
         ),
       ),
     );

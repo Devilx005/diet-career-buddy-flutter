@@ -17,7 +17,7 @@ class GeminiService {
   static String get apiKey7 => dotenv.env['API_KEY_7'] ?? '';
   static String get apiKey8 => dotenv.env['API_KEY_8'] ?? '';
 
-  // ✅ Cache storage
+  // Cache storage
   static final Map<String, CachedData> _cache = {};
 
   static String _sanitizeForWeb(String text) {
@@ -42,17 +42,22 @@ class GeminiService {
 
     try {
       final String baseUrl;
+
+      // Updated to latest stable Gemini Flash model
+      const modelPath =
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
       if (kIsWeb) {
-        final encodedUrl = Uri.encodeComponent(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=$apiKey'
-        );
+        final encodedUrl =
+        Uri.encodeComponent('$modelPath?key=$apiKey');
         baseUrl = 'https://api.allorigins.win/raw?url=$encodedUrl';
       } else {
-        baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=$apiKey';
+        baseUrl = '$modelPath?key=$apiKey';
       }
 
       final url = Uri.parse(baseUrl);
-      final response = await http.post(
+      final response = await http
+          .post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -64,7 +69,8 @@ class GeminiService {
             }
           ]
         }),
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -74,7 +80,9 @@ class GeminiService {
             data['candidates'][0]['content'] != null &&
             data['candidates'][0]['content']['parts'] != null &&
             data['candidates'][0]['content']['parts'].isNotEmpty) {
-          final rawText = data['candidates'][0]['content']['parts'][0]['text'] ?? 'No response';
+          final rawText =
+              data['candidates'][0]['content']['parts'][0]['text'] ??
+                  'No response';
           final fullText = _sanitizeForWeb(rawText);
           if (fullText.isNotEmpty) {
             await _streamText(fullText, onChunk);
@@ -82,6 +90,8 @@ class GeminiService {
         }
       } else if (response.statusCode == 429) {
         onChunk('⚠️ Rate limit reached.');
+      } else {
+        onChunk('❌ Gemini Error: ${response.statusCode}');
       }
     } catch (e) {
       onChunk('❌ Error: $e');
@@ -101,9 +111,11 @@ class GeminiService {
     }
 
     try {
-      final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
+      final url =
+      Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
-      final response = await http.post(
+      final response = await http
+          .post(
         url,
         headers: {
           'Content-Type': 'application/json',
@@ -117,21 +129,25 @@ class GeminiService {
           'temperature': 0.7,
           'max_tokens': 2048,
         }),
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['choices'] != null && data['choices'].isNotEmpty) {
-          final text = data['choices'][0]['message']['content'] ?? 'No response';
+          final text =
+              data['choices'][0]['message']['content'] ?? 'No response';
           final fullText = _sanitizeForWeb(text);
           if (fullText.isNotEmpty) {
             await _streamText(fullText, onChunk);
           }
         }
       } else if (response.statusCode == 401) {
-        onChunk('❌ Groq API key is invalid. Please check your key.');
+        onChunk(
+            '❌ Groq API key is invalid. Please check your key.');
       } else if (response.statusCode == 429) {
-        onChunk('⚠️ Groq rate limit reached. Try again later.');
+        onChunk(
+            '⚠️ Groq rate limit reached. Try again later.');
       } else {
         onChunk('❌ Groq Error: ${response.statusCode}');
       }
@@ -154,7 +170,8 @@ class GeminiService {
     try {
       final url = Uri.parse('https://api.cohere.ai/v1/chat');
 
-      final response = await http.post(
+      final response = await http
+          .post(
         url,
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +182,8 @@ class GeminiService {
           'model': 'command-r-08-2024',
           'temperature': 0.7,
         }),
-      ).timeout(const Duration(seconds: 30));
+      )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -177,7 +195,8 @@ class GeminiService {
           }
         }
       } else if (response.statusCode == 401) {
-        onChunk('❌ Cohere API key is invalid. Please check your key.');
+        onChunk(
+            '❌ Cohere API key is invalid. Please check your key.');
       } else {
         onChunk('❌ Cohere Error: ${response.statusCode}');
       }
@@ -186,14 +205,16 @@ class GeminiService {
     }
   }
 
-  static Future<void> _streamText(String text, Function(String) onChunk) async {
+  static Future<void> _streamText(
+      String text, Function(String) onChunk) async {
     if (text.isEmpty) return;
 
     try {
       if (kIsWeb) {
-        final chunkSize = 100;
+        const chunkSize = 100;
         for (int i = 0; i < text.length; i += chunkSize) {
-          final end = (i + chunkSize < text.length) ? i + chunkSize : text.length;
+          final end =
+          (i + chunkSize < text.length) ? i + chunkSize : text.length;
           onChunk(text.substring(0, end));
           await Future.delayed(const Duration(milliseconds: 30));
         }
@@ -202,12 +223,12 @@ class GeminiService {
         final words = text.split(' ');
         String currentText = '';
         for (int i = 0; i < words.length; i++) {
-          currentText += words[i] + ' ';
+          currentText += '${words[i]} ';
           onChunk(currentText);
           await Future.delayed(const Duration(milliseconds: 30));
         }
       }
-    } catch (e) {
+    } catch (_) {
       onChunk(text);
     }
   }
@@ -215,9 +236,8 @@ class GeminiService {
   static Future<void> chatStreamingWithModel(
       String userMessage,
       String model,
-      Function(String) onChunk
+      Function(String) onChunk,
       ) async {
-
     final prompt = '''You are an expert career guidance counselor for college students in India.
 
 Student question: $userMessage
@@ -232,13 +252,16 @@ Be friendly and use emojis.''';
 
     switch (model) {
       case 'Llama 3.1 70B':
-        await _groqChatStreaming(prompt, 'llama-3.3-70b-versatile', onChunk);
+        await _groqChatStreaming(
+            prompt, 'llama-3.3-70b-versatile', onChunk);
         break;
       case 'Mixtral 8x7B':
-        await _groqChatStreaming(prompt, 'mixtral-8x7b-32768', onChunk);
+        await _groqChatStreaming(
+            prompt, 'mixtral-8x7b-32768', onChunk);
         break;
       case 'Gemma 2 9B':
-        await _groqChatStreaming(prompt, 'gemma2-9b-it', onChunk);
+        await _groqChatStreaming(
+            prompt, 'gemma2-9b-it', onChunk);
         break;
       case 'Command-R':
         await _cohereChatStreaming(prompt, onChunk);
@@ -249,14 +272,15 @@ Be friendly and use emojis.''';
     }
   }
 
-  // ✅ OPTIMIZED: Tech Careers with 24h cache + Groq
-  static Future<void> getTechCareersStreaming(Function(String) onChunk) async {
+  static Future<void> getTechCareersStreaming(
+      Function(String) onChunk) async {
     const cacheKey = 'tech_careers_2025';
 
     if (_cache.containsKey(cacheKey)) {
       final cached = _cache[cacheKey]!;
-      if (DateTime.now().difference(cached.timestamp) < Duration(hours: 24)) {
-        print('✅ Using cached Tech Careers (saved 1 API call)');
+      if (DateTime.now()
+          .difference(cached.timestamp) <
+          const Duration(hours: 24)) {
         await _streamText(cached.data, onChunk);
         return;
       }
@@ -272,16 +296,18 @@ For each career, include:
 Format as a clear, structured response with emojis.''';
 
     String fullResponse = '';
-    await _groqChatStreaming(prompt, 'llama-3.3-70b-versatile', (text) {
+    await _groqChatStreaming(
+        prompt, 'llama-3.3-70b-versatile', (text) {
       fullResponse = text;
       onChunk(text);
     });
 
-    _cache[cacheKey] = CachedData(fullResponse, DateTime.now());
+    _cache[cacheKey] =
+        CachedData(fullResponse, DateTime.now());
   }
 
-  // ✅ OPTIMIZED: Salary Info with Groq (dynamic, no cache)
-  static Future<void> getSalaryInfoStreaming(String role, Function(String) onChunk) async {
+  static Future<void> getSalaryInfoStreaming(
+      String role, Function(String) onChunk) async {
     final prompt = '''Provide detailed salary information for $role in India (2025):
 - Fresher salary (0-1 years)
 - Mid-level (3-5 years)
@@ -291,11 +317,12 @@ Format as a clear, structured response with emojis.''';
 
 Show in INR (LPA). Use emojis.''';
 
-    return _groqChatStreaming(prompt, 'llama-3.3-70b-versatile', onChunk);
+    return _groqChatStreaming(
+        prompt, 'llama-3.3-70b-versatile', onChunk);
   }
 
-  // ✅ Learning Path with Cohere
-  static Future<void> getLearningPathStreaming(String domain, Function(String) onChunk) async {
+  static Future<void> getLearningPathStreaming(
+      String domain, Function(String) onChunk) async {
     final prompt = '''Create a complete learning roadmap for $domain for Indian students:
 - Beginner level (free courses)
 - Intermediate topics
@@ -308,14 +335,15 @@ Format clearly. Use emojis.''';
     return _cohereChatStreaming(prompt, onChunk);
   }
 
-  // ✅ OPTIMIZED: DIET Guide with 7-day cache + Cohere
-  static Future<void> getDIETGuideStreaming(Function(String) onChunk) async {
+  static Future<void> getDIETGuideStreaming(
+      Function(String) onChunk) async {
     const cacheKey = 'diet_guide_2025';
 
     if (_cache.containsKey(cacheKey)) {
       final cached = _cache[cacheKey]!;
-      if (DateTime.now().difference(cached.timestamp) < Duration(days: 7)) {
-        print('✅ Using cached DIET Guide (saved 1 API call)');
+      if (DateTime.now()
+          .difference(cached.timestamp) <
+          const Duration(days: 7)) {
         await _streamText(cached.data, onChunk);
         return;
       }
@@ -337,13 +365,13 @@ Format with clear sections and emojis.''';
       onChunk(text);
     });
 
-    _cache[cacheKey] = CachedData(fullResponse, DateTime.now());
+    _cache[cacheKey] =
+        CachedData(fullResponse, DateTime.now());
   }
 
-  // ✅ OPTIMIZED: Single request for all interview analysis sections (Groq)
   static Future<void> getInterviewAnalysisStreaming(
       String role,
-      Function(Map<String, String>) onSections
+      Function(Map<String, String>) onSections,
       ) async {
     final prompt = '''Analyze interview preparation for $role position in India. Provide response in these exact sections:
 
@@ -360,7 +388,8 @@ Format clearly with section headers.''';
 
     String fullResponse = '';
 
-    await _groqChatStreaming(prompt, 'llama-3.3-70b-versatile', (text) {
+    await _groqChatStreaming(
+        prompt, 'llama-3.3-70b-versatile', (text) {
       fullResponse = text;
     });
 
@@ -371,38 +400,52 @@ Format clearly with section headers.''';
   static Map<String, String> _parseInterviewSections(String text) {
     final sections = <String, String>{};
 
-    final overviewMatch = RegExp(r'\*\*OVERVIEW\*\*(.*?)(?=\*\*SAMPLE_MCQS\*\*|$)', dotAll: true).firstMatch(text);
-    final mcqMatch = RegExp(r'\*\*SAMPLE_MCQS\*\*(.*?)(?=\*\*RESOURCES\*\*|$)', dotAll: true).firstMatch(text);
-    final resourcesMatch = RegExp(r'\*\*RESOURCES\*\*(.*?)$', dotAll: true).firstMatch(text);
+    final overviewMatch = RegExp(
+        r'\*\*OVERVIEW\*\*(.*?)(?=\*\*SAMPLE_MCQS\*\*|$)',
+        dotAll: true)
+        .firstMatch(text);
+    final mcqMatch = RegExp(
+        r'\*\*SAMPLE_MCQS\*\*(.*?)(?=\*\*RESOURCES\*\*|$)',
+        dotAll: true)
+        .firstMatch(text);
+    final resourcesMatch =
+    RegExp(r'\*\*RESOURCES\*\*(.*?)$', dotAll: true)
+        .firstMatch(text);
 
-    sections['overview'] = overviewMatch?.group(1)?.trim() ?? '';
+    sections['overview'] =
+        overviewMatch?.group(1)?.trim() ?? '';
     sections['mcq'] = mcqMatch?.group(1)?.trim() ?? '';
-    sections['resources'] = resourcesMatch?.group(1)?.trim() ?? '';
+    sections['resources'] =
+        resourcesMatch?.group(1)?.trim() ?? '';
 
     return sections;
   }
 
-  // ✅ Keep for backward compatibility (but not used anymore)
-  static Future<void> getInterviewOverviewStreaming(String role, Function(String) onChunk) async {
-    final prompt = '''Give a 4-line overview and list 5 essential skills for a $role interview in India. Use emojis.''';
+  static Future<void> getInterviewOverviewStreaming(
+      String role, Function(String) onChunk) async {
+    final prompt =
+    '''Give a 4-line overview and list 5 essential skills for a $role interview in India. Use emojis.''';
     return _generateContentStreaming(prompt, apiKey5, onChunk);
   }
 
-  static Future<void> getInterviewMCQStreaming(String role, Function(String) onChunk) async {
-    final prompt = '''Create 3 MCQ questions with 4 options and the correct answer (in options) for a $role interview.''';
+  static Future<void> getInterviewMCQStreaming(
+      String role, Function(String) onChunk) async {
+    final prompt =
+    '''Create 3 MCQ questions with 4 options and the correct answer (in options) for a $role interview.''';
     return _generateContentStreaming(prompt, apiKey7, onChunk);
   }
 
-  static Future<void> getInterviewResourcesStreaming(String role, Function(String) onChunk) async {
-    final prompt = '''List 2 free, high-quality online resources (with links) for $role interview preparation and 1 top actionable tip.''';
+  static Future<void> getInterviewResourcesStreaming(
+      String role, Function(String) onChunk) async {
+    final prompt =
+    '''List 2 free, high-quality online resources (with links) for $role interview preparation and 1 top actionable tip.''';
     return _generateContentStreaming(prompt, apiKey8, onChunk);
   }
 
-  // ✅ Mock Interview MCQ Generation (Gemini - only for tests)
   static Future<void> getInterviewMCQByDifficulty(
       String role,
       String difficulty,
-      Function(String) onChunk
+      Function(String) onChunk,
       ) async {
     final prompt = '''Generate 5 $difficulty level MCQ interview questions for $role position in India.
 
@@ -431,7 +474,8 @@ Continue for all 5 questions. Make sure difficulty matches the $difficulty level
     return _generateContentStreaming(prompt, apiKey7, onChunk);
   }
 
-  static Future<List<Map<String, dynamic>>> getLinkedInJobs(String role, String location) async {
+  static Future<List<Map<String, dynamic>>> getLinkedInJobs(
+      String role, String location) async {
     try {
       final apiKey = linkedinjobapi;
       if (apiKey.isEmpty) {
@@ -445,40 +489,50 @@ Continue for all 5 questions. Make sure difficulty matches the $difficulty level
               'offset=0&'
               'title_filter=${Uri.encodeComponent(role)}&'
               'location_filter=${Uri.encodeComponent(location)}&'
-              'description_type=text'
-      );
+              'description_type=text');
 
-      final response = await http.get(
+      final response = await http
+          .get(
         url,
         headers: {
           'X-RapidAPI-Key': apiKey,
-          'X-RapidAPI-Host': 'linkedin-job-search-api.p.rapidapi.com',
+          'X-RapidAPI-Host':
+          'linkedin-job-search-api.p.rapidapi.com',
         },
-      ).timeout(const Duration(seconds: 15));
+      )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         if (data is List && data.isNotEmpty) {
-          List<Map<String, dynamic>> jobs = [];
+          final jobs = <Map<String, dynamic>>[];
           for (var job in data) {
             final locations = job['locations_raw'] ?? [];
             String locationStr = location;
             if (locations.isNotEmpty && locations[0] is Map) {
-              locationStr = locations[0]['address']?['addressLocality'] ?? location;
+              locationStr = locations[0]['address']
+              ?['addressLocality'] ??
+                  location;
             }
 
-            final desc = job['description']?.toString() ?? 'No description available';
+            final desc = job['description']?.toString() ??
+                'No description available';
 
             jobs.add({
               'title': job['title'] ?? 'Unknown Position',
-              'company': job['organization'] ?? 'Unknown Company',
+              'company':
+              job['organization'] ?? 'Unknown Company',
               'location': locationStr,
               'salary': 'Not specified',
               'type': 'Full-time',
-              'description': desc.length > 150 ? desc.substring(0, 150) + '...' : desc,
-              'applyLink': job['organization_url'] ?? '',
-              'posted': job['date_posted'] ?? 'Recently',
+              'description': desc.length > 150
+                  ? '${desc.substring(0, 150)}...'
+                  : desc,
+              'applyLink':
+              job['organization_url'] ?? '',
+              'posted':
+              job['date_posted'] ?? 'Recently',
             });
           }
 
@@ -493,12 +547,12 @@ Continue for all 5 questions. Make sure difficulty matches the $difficulty level
     }
   }
 
-  static Future<void> chatStreaming(String userMessage, Function(String) onChunk) async {
-    return chatStreamingWithModel(userMessage, 'Gemini 1.5 Flash', onChunk);
-  }
+  static Future<void> chatStreaming(
+      String userMessage, Function(String) onChunk) =>
+      chatStreamingWithModel(
+          userMessage, 'Gemini 1.5 Flash', onChunk);
 }
 
-// ✅ Cache data class
 class CachedData {
   final String data;
   final DateTime timestamp;

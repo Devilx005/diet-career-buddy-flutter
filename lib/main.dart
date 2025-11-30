@@ -353,47 +353,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       const SizedBox(height: 16),
 
-                      // ✅ NEW: "Made for all students" badge
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFF10A37F).withOpacity(0.2),
-                                const Color(0xFF0D8A6A).withOpacity(0.1),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFF10A37F).withOpacity(0.4),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(
-                                Icons.favorite,
-                                color: Color(0xFF10A37F),
-                                size: 16,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Made for all students who are seeking for career ',
-                                style: TextStyle(
-                                  color: Color(0xFF10A37F),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
                       // Subtitle with gradient
                       ShaderMask(
                         shaderCallback: (bounds) => const LinearGradient(
