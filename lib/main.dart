@@ -5,6 +5,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'web_download_stub.dart'
+if (dart.library.html) 'web_download_web.dart';
+
 
 import 'login_screen.dart';
 import 'gemini_service.dart';
@@ -744,14 +748,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 onPressed: _backToHome,
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  backgroundColor: Color(0xFF10A37F).withOpacity(0.1),
+                  backgroundColor: const Color(0xFF10A37F).withOpacity(0.1),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
             ),
+          if (kIsWeb)
+            IconButton(
+              icon: const Icon(Icons.download, color: Color(0xFF10A37F)),
+              tooltip: 'Get Android App',
+              onPressed: () => downloadApk(context),
+            ),
         ],
+
+
       ),
       body: currentDashboard == 'home' ? _buildHomePage() : _buildDashboardPage(),
     );
