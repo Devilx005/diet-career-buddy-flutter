@@ -12,7 +12,20 @@
           "package_name": "com.example.diet_career_buddy"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "330402609443-eu6qpp1tfogg7kdd4jgpk8setvinis7k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.diet_career_buddy",
+            "certificate_hash": "c9baffe268b31536ab03472550b94f526d2db07e"
+          }
+        },
+        {
+          "client_id": "330402609443-svcjad3ipnnqpsk2cs3vk4irerumhefl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCB6pYiMMm_ydaQXSWPaQB3at3FvwN_mKg"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "330402609443-svcjad3ipnnqpsk2cs3vk4irerumhefl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

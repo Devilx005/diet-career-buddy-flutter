@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -34,11 +35,12 @@ class LoginScreen extends StatelessWidget {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomeScreen(),
+          builder: (context) => const HomeScreen(), // <-- only this line changed
         ),
       );
     }
   }
+
 }
 
 class LoginDialog extends StatefulWidget {
@@ -48,7 +50,8 @@ class LoginDialog extends StatefulWidget {
   State<LoginDialog> createState() => _LoginDialogState();
 }
 
-class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStateMixin {
+class _LoginDialogState extends State<LoginDialog>
+    with SingleTickerProviderStateMixin {
   bool _showEmailLogin = false;
   bool _isSignupMode = false;
 
@@ -65,7 +68,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  final GoogleSignIn _googleSignIn =
+  GoogleSignIn(scopes: ['email', 'profile']);
 
   @override
   void initState() {
@@ -121,7 +125,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
         ),
         backgroundColor: Colors.red.shade700,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -138,28 +143,52 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
         ),
         backgroundColor: Colors.green.shade700,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
+  // ---------- AUTH HANDLERS (ESSENTIAL CHANGES) ----------
+
   Future<void> _handleGoogleSignIn() async {
     if (!kIsWeb && Platform.isWindows) {
-      _showError('Google Sign-In is not supported on Windows desktop. Please use Guest mode.');
+      _showError(
+          'Google Sign-In is not supported on Windows desktop. Please use Guest mode.');
       return;
     }
 
     try {
       setState(() => _isLoading = true);
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      Navigator.pop(context, googleUser.displayName ?? googleUser.email?.split('@')[0] ?? 'GoogleUser');
-    } catch (error) {
+      final GoogleSignInAuthentication googleAuth =
+      await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      ); // [web:68][web:73]
+
+      final UserCredential userCredential =
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final user = userCredential.user!;
+      if (!mounted) return;
+
+      Navigator.pop(
+        context,
+        user.displayName ?? user.email!.split('@')[0],
+      );
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Google Sign-In failed. Please try again.');
+      setState(() => _isLoading = false);
+    } catch (_) {
       _showError('Google Sign-In failed. Please try again.');
       setState(() => _isLoading = false);
     }
@@ -184,13 +213,19 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final UserCredential cred = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password); // [web:69][web:73]
 
-    if (password.length >= 6) {
-      final username = email.split('@')[0];
-      Navigator.pop(context, username);
-    } else {
-      _showError('Invalid credentials');
+      final user = cred.user!;
+      if (!mounted) return;
+
+      Navigator.pop(
+        context,
+        user.displayName ?? user.email!.split('@')[0],
+      );
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Invalid credentials');
       setState(() => _isLoading = false);
     }
   }
@@ -201,7 +236,10 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       _showError('Please fill in all fields');
       return;
     }
@@ -212,7 +250,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     }
 
     if (!_isStrongPassword(password)) {
-      _showError('Password must be 8+ chars with uppercase, lowercase, and number');
+      _showError(
+          'Password must be 8+ chars with uppercase, lowercase, and number');
       return;
     }
 
@@ -222,14 +261,25 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final UserCredential cred = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+          email: email, password: password); // [web:69][web:73]
 
-    _showSuccess('Account created successfully!');
-    setState(() {
-      _isSignupMode = false;
-      _isLoading = false;
-    });
+      await cred.user!.updateDisplayName(name);
+
+      _showSuccess('Account created successfully!');
+      setState(() {
+        _isSignupMode = false;
+        _isLoading = false;
+      });
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Signup failed');
+      setState(() => _isLoading = false);
+    }
   }
+
+  // ---------------- EXISTING UI BELOW (UNCHANGED) ----------------
 
   @override
   Widget build(BuildContext context) {
@@ -349,15 +399,18 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                                 Color(0xFF3B82F6),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(isMobile ? 18 : 22),
+                            borderRadius:
+                            BorderRadius.circular(isMobile ? 18 : 22),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF10A37F).withOpacity(0.5),
+                                color: const Color(0xFF10A37F)
+                                    .withOpacity(0.5),
                                 blurRadius: 24,
                                 offset: const Offset(0, 8),
                               ),
                               BoxShadow(
-                                color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                                color: const Color(0xFF8B5CF6)
+                                    .withOpacity(0.3),
                                 blurRadius: 24,
                                 offset: const Offset(8, 8),
                               ),
@@ -398,7 +451,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                           ).createShader(bounds),
                           child: Text(
                             _showEmailLogin
-                                ? (_isSignupMode ? 'Create your account' : 'Welcome back')
+                                ? (_isSignupMode
+                                ? 'Create your account'
+                                : 'Welcome back')
                                 : 'Your AI Career Companion',
                             style: TextStyle(
                               fontSize: isMobile ? 16 : 18,
@@ -419,7 +474,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                             textAlign: TextAlign.center,
                           ),
                         SizedBox(height: isMobile ? 28 : 36),
-                        _showEmailLogin ? _buildEmailForm(isMobile) : _buildSocialButtons(isMobile),
+                        _showEmailLogin
+                            ? _buildEmailForm(isMobile)
+                            : _buildSocialButtons(isMobile),
                       ],
                     ),
                   ),
@@ -469,7 +526,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
         SizedBox(height: isMobile ? 16 : 20),
         Row(
           children: [
-            Expanded(child: Divider(color: Colors.grey.shade700, thickness: 1)),
+            Expanded(
+                child:
+                Divider(color: Colors.grey.shade700, thickness: 1)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
@@ -481,12 +540,15 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
                 ),
               ),
             ),
-            Expanded(child: Divider(color: Colors.grey.shade700, thickness: 1)),
+            Expanded(
+                child:
+                Divider(color: Colors.grey.shade700, thickness: 1)),
           ],
         ),
         SizedBox(height: isMobile ? 16 : 20),
         _buildModernButton(
-          icon: const Icon(Icons.email_outlined, size: 22, color: Color(0xFF8B5CF6)),
+          icon: const Icon(Icons.email_outlined,
+              size: 22, color: Color(0xFF8B5CF6)),
           text: 'Continue with email',
           onPressed: () => setState(() => _showEmailLogin = true),
           gradient: LinearGradient(
@@ -501,7 +563,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
         ),
         SizedBox(height: isMobile ? 12 : 16),
         _buildModernButton(
-          icon: const Icon(Icons.person_outline, size: 22, color: Color(0xFF10A37F)),
+          icon: const Icon(Icons.person_outline,
+              size: 22, color: Color(0xFF10A37F)),
           text: 'Continue as Guest',
           onPressed: _handleGuestLogin,
           gradient: LinearGradient(
@@ -601,7 +664,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           iconColor: const Color(0xFF3B82F6),
           isPassword: true,
           obscureText: _obscurePassword,
-          onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+          onToggleVisibility: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
           onSubmitted: (_) => _handleEmailLogin(),
           isMobile: isMobile,
         ),
@@ -631,7 +695,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -685,7 +750,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
         SizedBox(height: isMobile ? 8 : 12),
         TextButton.icon(
           onPressed: () => setState(() => _showEmailLogin = false),
-          icon: Icon(Icons.arrow_back, size: 18, color: Colors.grey.shade500),
+          icon: Icon(Icons.arrow_back,
+              size: 18, color: Colors.grey.shade500),
           label: Text(
             'Back to options',
             style: TextStyle(
@@ -728,7 +794,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           iconColor: const Color(0xFF3B82F6),
           isPassword: true,
           obscureText: _obscurePassword,
-          onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+          onToggleVisibility: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
           isMobile: isMobile,
         ),
         SizedBox(height: isMobile ? 14 : 18),
@@ -740,7 +807,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           iconColor: const Color(0xFFEC4899),
           isPassword: true,
           obscureText: _obscureConfirmPassword,
-          onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+          onToggleVisibility: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword),
           onSubmitted: (_) => _handleSignup(),
           isMobile: isMobile,
         ),
@@ -770,7 +838,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -824,7 +893,8 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
         SizedBox(height: isMobile ? 8 : 12),
         TextButton.icon(
           onPressed: () => setState(() => _showEmailLogin = false),
-          icon: Icon(Icons.arrow_back, size: 18, color: Colors.grey.shade500),
+          icon: Icon(Icons.arrow_back,
+              size: 18, color: Colors.grey.shade500),
           label: Text(
             'Back to options',
             style: TextStyle(
@@ -890,7 +960,9 @@ class _LoginDialogState extends State<LoginDialog> with SingleTickerProviderStat
           suffixIcon: isPassword
               ? IconButton(
             icon: Icon(
-              obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+              obscureText
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
               color: Colors.grey.shade500,
               size: 22,
             ),

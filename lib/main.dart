@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
+
 import 'login_screen.dart';
 import 'gemini_service.dart';
 
@@ -17,6 +21,11 @@ import 'conversation_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   if (!kIsWeb) {
     try {
@@ -68,26 +77,43 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    final username = prefs.getString('username') ?? 'Guest';
-
     await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
 
-    if (isLoggedIn) {
+    // Check Firebase Auth
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      // User logged in via Firebase
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomeScreen(isLoggedIn: true, username: username),
+          builder: (context) => HomeScreen(
+            isLoggedIn: true,
+            username: user.displayName ?? user.email!.split('@')[0],
+          ),
         ),
       );
     } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      // Check SharedPreferences for old sessions
+      final prefs = await SharedPreferences.getInstance();
+      final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+      final username = prefs.getString('username') ?? 'Guest';
+
+      if (isLoggedIn) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(isLoggedIn: true, username: username),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
     }
   }
 
@@ -251,6 +277,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _logout() async {
+    // Sign out from Firebase
+    await FirebaseAuth.instance.signOut();
+
+    // Clear SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
@@ -318,7 +348,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header with gradient icon
                       Row(
                         children: [
                           Container(
@@ -330,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF10A37F).withOpacity(0.4),
+                                  color: Color(0xFF10A37F).withOpacity(0.4),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 ),
@@ -352,8 +381,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ],
                       ),
                       const SizedBox(height: 16),
-
-                      // Subtitle with gradient
                       ShaderMask(
                         shaderCallback: (bounds) => const LinearGradient(
                           colors: [Color(0xFF10A37F), Color(0xFF0FD1A8)],
@@ -368,21 +395,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       const SizedBox(height: 24),
-
-                      // Features with animation
                       ..._buildAnimatedFeatures(),
-
                       const SizedBox(height: 24),
                       const Divider(color: Colors.white24),
                       const SizedBox(height: 16),
-
-                      // Version card
                       _buildVersionCard(),
                       const SizedBox(height: 16),
-
-
-
-                      // Team members
                       const Text(
                         'Created by TY BTech DIET Students',
                         style: TextStyle(
@@ -400,8 +418,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(height: 8),
                       _buildTeamMember('Rohan Sawant', '23067971242077'),
                       const SizedBox(height: 24),
-
-                      // Close button
                       Center(
                         child: ElevatedButton(
                           onPressed: () => Navigator.of(context).pop(),
@@ -413,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 8,
-                            shadowColor: const Color(0xFF10A37F).withOpacity(0.5),
+                            shadowColor: Color(0xFF10A37F).withOpacity(0.5),
                           ),
                           child: const Text(
                             'Close',
@@ -460,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   color: const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: const Color(0xFF10A37F).withOpacity(0.3),
+                    color: Color(0xFF10A37F).withOpacity(0.3),
                   ),
                 ),
                 child: Row(
@@ -491,13 +507,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF10A37F).withOpacity(0.15),
-            const Color(0xFF0D8A6A).withOpacity(0.05),
+            Color(0xFF10A37F).withOpacity(0.15),
+            Color(0xFF0D8A6A).withOpacity(0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF10A37F).withOpacity(0.3),
+          color: Color(0xFF10A37F).withOpacity(0.3),
         ),
       ),
       child: Row(
@@ -538,15 +554,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFF10A37F).withOpacity(0.3),
+          color: Color(0xFF10A37F).withOpacity(0.3),
         ),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
                 colors: [Color(0xFF10A37F), Color(0xFF0D8A6A)],
               ),
               shape: BoxShape.circle,
@@ -728,7 +744,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 onPressed: _backToHome,
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  backgroundColor: const Color(0xFF10A37F).withOpacity(0.1),
+                  backgroundColor: Color(0xFF10A37F).withOpacity(0.1),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -794,10 +810,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      backgroundColor: const Color(0xFF10A37F).withOpacity(0.1),
+                      backgroundColor: Color(0xFF10A37F).withOpacity(0.1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
-                        side: BorderSide(color: const Color(0xFF10A37F).withOpacity(0.3)),
+                        side: BorderSide(color: Color(0xFF10A37F).withOpacity(0.3)),
                       ),
                     ),
                   ),
@@ -898,7 +914,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-
         Container(
           padding: const EdgeInsets.all(16.0),
           decoration: const BoxDecoration(
@@ -947,7 +962,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFF10A37F).withOpacity(0.1) : null,
+                                  color: isSelected ? Color(0xFF10A37F).withOpacity(0.1) : null,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -1070,19 +1085,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildDashboardPage() {
-    Widget content;
     switch (currentDashboard) {
-      case 'tech': content = TechDashboard(); break;
-      case 'salary': content = SalaryDashboard(); break;
-      case 'learning': content = LearningDashboard(); break;
-      case 'diet': content = DIETGuide(); break;
-      case 'interview': content = InterviewDashboard(); break;
-      case 'jobs': content = JobsDashboard(); break;
-      default: content = Center(child: Text('${currentDashboard.toUpperCase()}\nComing Soon!', textAlign: TextAlign.center, style: const TextStyle(fontSize: 20)));
+      case 'tech':
+        return TechDashboard();
+      case 'salary':
+        return SalaryDashboard();
+      case 'learning':
+        return LearningDashboard();
+      case 'diet':
+        return DIETGuide();
+      case 'interview':
+        return InterviewDashboard(); // <-- use this
+      case 'jobs':
+        return JobsDashboard();
+      default:
+        return const Center(
+          child: Text(
+            'Dashboard not found',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 20),
+          ),
+        );
     }
-
-    return content;
   }
+
 
   @override
   void dispose() {
