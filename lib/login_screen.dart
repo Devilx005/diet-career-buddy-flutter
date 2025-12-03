@@ -161,22 +161,28 @@ class _LoginDialogState extends State<LoginDialog>
     try {
       setState(() => _isLoading = true);
 
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        setState(() => _isLoading = false);
-        return;
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        // Web: Firebase popup auth
+        final provider = GoogleAuthProvider();
+        userCredential =
+        await FirebaseAuth.instance.signInWithPopup(provider); // [web:68][web:83]
+      } else {
+        // Mobile/desktop: google_sign_in plugin
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          setState(() => _isLoading = false);
+          return;
+        }
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        ); // [web:81][web:83]
+        userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
       }
-
-      final GoogleSignInAuthentication googleAuth =
-      await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      ); // [web:68][web:73]
-
-      final UserCredential userCredential =
-      await FirebaseAuth.instance.signInWithCredential(credential);
 
       final user = userCredential.user!;
       if (!mounted) return;
@@ -193,6 +199,7 @@ class _LoginDialogState extends State<LoginDialog>
       setState(() => _isLoading = false);
     }
   }
+
 
   void _handleGuestLogin() {
     Navigator.pop(context, 'Guest');
