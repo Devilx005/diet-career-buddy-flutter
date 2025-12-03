@@ -4,21 +4,66 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class GeminiService {
-  static String get apiKey1 => dotenv.env['API_KEY_1'] ?? '';
-  static String get apiKey2 => dotenv.env['API_KEY_2'] ?? '';
-  static String get apiKey3 => dotenv.env['API_KEY_3'] ?? '';
-  static String get apiKey4 => dotenv.env['API_KEY_4'] ?? '';
-  static String get apiKey5 => dotenv.env['API_KEY_5'] ?? '';
-  static String get apiKey6 => dotenv.env['API_KEY_6'] ?? '';
-  static String get geminiapi => dotenv.env['GEMINI_API'] ?? '';
-  static String get groqapi => dotenv.env['GROQ_API_KEY'] ?? '';
-  static String get cohereapi => dotenv.env['COHERE_API_KEY'] ?? '';
-  static String get linkedinjobapi => dotenv.env['LINKEDIN_JOB_API_KEY'] ?? '';
-  static String get apiKey7 => dotenv.env['API_KEY_7'] ?? '';
-  static String get apiKey8 => dotenv.env['API_KEY_8'] ?? '';
+  // ✅ Hybrid approach: environment variables for web, .env for mobile/desktop
+  static String get apiKey1 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_1', defaultValue: '')
+      : (dotenv.env['API_KEY_1'] ?? '');
+
+  static String get apiKey2 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_2', defaultValue: '')
+      : (dotenv.env['API_KEY_2'] ?? '');
+
+  static String get apiKey3 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_3', defaultValue: '')
+      : (dotenv.env['API_KEY_3'] ?? '');
+
+  static String get apiKey4 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_4', defaultValue: '')
+      : (dotenv.env['API_KEY_4'] ?? '');
+
+  static String get apiKey5 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_5', defaultValue: '')
+      : (dotenv.env['API_KEY_5'] ?? '');
+
+  static String get apiKey6 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_6', defaultValue: '')
+      : (dotenv.env['API_KEY_6'] ?? '');
+
+  static String get apiKey7 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_7', defaultValue: '')
+      : (dotenv.env['API_KEY_7'] ?? '');
+
+  static String get apiKey8 => kIsWeb
+      ? const String.fromEnvironment('API_KEY_8', defaultValue: '')
+      : (dotenv.env['API_KEY_8'] ?? '');
+
+  static String get geminiapi => kIsWeb
+      ? const String.fromEnvironment('GEMINI_API', defaultValue: '')
+      : (dotenv.env['GEMINI_API'] ?? '');
+
+  static String get groqapi => kIsWeb
+      ? const String.fromEnvironment('GROQ_API_KEY', defaultValue: '')
+      : (dotenv.env['GROQ_API_KEY'] ?? '');
+
+  static String get cohereapi => kIsWeb
+      ? const String.fromEnvironment('COHERE_API_KEY', defaultValue: '')
+      : (dotenv.env['COHERE_API_KEY'] ?? '');
+
+  static String get linkedinjobapi => kIsWeb
+      ? const String.fromEnvironment('LINKEDIN_JOB_API_KEY', defaultValue: '')
+      : (dotenv.env['LINKEDIN_JOB_API_KEY'] ?? '');
 
   // Cache storage
   static final Map<String, CachedData> _cache = {};
+
+  // Debug function to verify keys are loaded
+  static void checkApiKeys() {
+    print('🔍 Running on: ${kIsWeb ? "WEB (Vercel)" : "MOBILE/DESKTOP"}');
+    print('  GEMINI_API: ${geminiapi.isNotEmpty ? "✅ Loaded (${geminiapi.substring(0, 10)}...)" : "❌ MISSING"}');
+    print('  GROQ_API_KEY: ${groqapi.isNotEmpty ? "✅ Loaded" : "❌ MISSING"}');
+    print('  COHERE_API_KEY: ${cohereapi.isNotEmpty ? "✅ Loaded" : "❌ MISSING"}');
+    print('  LINKEDIN_JOB_API_KEY: ${linkedinjobapi.isNotEmpty ? "✅ Loaded" : "❌ MISSING"}');
+  }
 
   static String _sanitizeForWeb(String text) {
     if (!kIsWeb) return text;
@@ -36,7 +81,7 @@ class GeminiService {
       Function(String) onChunk,
       ) async {
     if (apiKey.isEmpty) {
-      onChunk('⚠️ API key not configured. Please check your .env file.');
+      onChunk('⚠️ API key not configured. Please check your environment variables.');
       return;
     }
 
@@ -474,12 +519,30 @@ Continue for all 5 questions. Make sure difficulty matches the $difficulty level
     return _generateContentStreaming(prompt, apiKey7, onChunk);
   }
 
+  static Future<void> getInterviewPrepStreaming(
+      String role,
+      Function(String) onChunk,
+      ) async {
+    final prompt = '''Provide complete interview preparation guide for $role in India:
+- Role overview
+- Key skills required
+- Common interview questions
+- Technical topics to prepare
+- Behavioral questions
+- Salary range in India
+- Best resources
+
+Format clearly with emojis.''';
+
+    return _generateContentStreaming(prompt, geminiapi, onChunk);
+  }
+
   static Future<List<Map<String, dynamic>>> getLinkedInJobs(
       String role, String location) async {
     try {
       final apiKey = linkedinjobapi;
       if (apiKey.isEmpty) {
-        print('❌ NO API KEY');
+        print('❌ LinkedIn Job API key not configured');
         return [];
       }
 
@@ -538,11 +601,13 @@ Continue for all 5 questions. Make sure difficulty matches the $difficulty level
 
           return jobs;
         }
+      } else {
+        print('❌ LinkedIn Job API Error: ${response.statusCode}');
       }
 
       return [];
     } catch (e) {
-      print('❌ EXCEPTION: $e');
+      print('❌ LinkedIn Job API Exception: $e');
       return [];
     }
   }
