@@ -52,4 +52,4 @@ flutter:
   assets:
     #   - .env
     - .envdummy
-    - web/assets/PathifyAI.apk
+    - web/assets/Pathify AI.apk
