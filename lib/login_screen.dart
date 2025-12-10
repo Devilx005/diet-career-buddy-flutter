@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'home_screen.dart';
+import 'auth_service.dart';  // adjust path if needed
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -35,12 +37,11 @@ class LoginScreen extends StatelessWidget {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const HomeScreen(), // <-- only this line changed
+          builder: (context) => const HomeScreen(),
         ),
       );
     }
   }
-
 }
 
 class LoginDialog extends StatefulWidget {
@@ -70,6 +71,8 @@ class _LoginDialogState extends State<LoginDialog>
 
   final GoogleSignIn _googleSignIn =
   GoogleSignIn(scopes: ['email', 'profile']);
+
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -125,8 +128,7 @@ class _LoginDialogState extends State<LoginDialog>
         ),
         backgroundColor: Colors.red.shade700,
         behavior: SnackBarBehavior.floating,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -143,18 +145,17 @@ class _LoginDialogState extends State<LoginDialog>
         ),
         backgroundColor: Colors.green.shade700,
         behavior: SnackBarBehavior.floating,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
-  // ---------- AUTH HANDLERS (ESSENTIAL CHANGES) ----------
+  // ---------- AUTH HANDLERS ----------
 
   Future<void> _handleGoogleSignIn() async {
     if (!kIsWeb && Platform.isWindows) {
       _showError(
-          'Google Sign-In is not supported on Windows desktop. Please use Guest mode.');
+          'Google Sign-In is not supported on Windows desktop. Please use email/password or Guest mode.');
       return;
     }
 
@@ -164,12 +165,10 @@ class _LoginDialogState extends State<LoginDialog>
       UserCredential userCredential;
 
       if (kIsWeb) {
-        // Web: Firebase popup auth
         final provider = GoogleAuthProvider();
         userCredential =
-        await FirebaseAuth.instance.signInWithPopup(provider); // [web:68][web:83]
+        await FirebaseAuth.instance.signInWithPopup(provider);
       } else {
-        // Mobile/desktop: google_sign_in plugin
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
         if (googleUser == null) {
           setState(() => _isLoading = false);
@@ -179,12 +178,14 @@ class _LoginDialogState extends State<LoginDialog>
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
-        ); // [web:81][web:83]
+        );
         userCredential =
         await FirebaseAuth.instance.signInWithCredential(credential);
       }
 
       final user = userCredential.user!;
+      print('✅ Google Sign-In successful: ${user.email}');
+
       if (!mounted) return;
 
       Navigator.pop(
@@ -192,16 +193,19 @@ class _LoginDialogState extends State<LoginDialog>
         user.displayName ?? user.email!.split('@')[0],
       );
     } on FirebaseAuthException catch (e) {
+      print('❌ Google Sign-In FirebaseAuthException: ${e.code}');
+      print('   Message: ${e.message}');
       _showError(e.message ?? 'Google Sign-In failed. Please try again.');
       setState(() => _isLoading = false);
-    } catch (_) {
+    } catch (e) {
+      print('❌ Google Sign-In unexpected error: $e');
       _showError('Google Sign-In failed. Please try again.');
       setState(() => _isLoading = false);
     }
   }
 
-
   void _handleGuestLogin() {
+    print('ℹ️ User logged in as Guest');
     Navigator.pop(context, 'Guest');
   }
 
@@ -219,20 +223,27 @@ class _LoginDialogState extends State<LoginDialog>
       return;
     }
 
+    print('🔄 Attempting login for: $email');
     setState(() => _isLoading = true);
-    try {
-      final UserCredential cred = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password); // [web:69][web:73]
 
-      final user = cred.user!;
+    try {
+      await _authService.signInWithEmail(email, password);
+
+      final user = FirebaseAuth.instance.currentUser;
+      print('✅ Login successful!');
+      print('   User ID: ${user?.uid}');
+      print('   Email: ${user?.email}');
+      print('   Display Name: ${user?.displayName}');
+
       if (!mounted) return;
 
       Navigator.pop(
         context,
-        user.displayName ?? user.email!.split('@')[0],
+        user?.displayName ?? user?.email?.split('@')[0] ?? 'User',
       );
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Invalid credentials');
+    } catch (e) {
+      print('❌ Login failed: $e');
+      _showError(e.toString());
       setState(() => _isLoading = false);
     }
   }
@@ -267,26 +278,30 @@ class _LoginDialogState extends State<LoginDialog>
       return;
     }
 
+    print('🔄 Attempting signup for: $email');
     setState(() => _isLoading = true);
+
     try {
-      final UserCredential cred = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-          email: email, password: password); // [web:69][web:73]
+      await _authService.signUpWithEmail(email, password, name);
 
-      await cred.user!.updateDisplayName(name);
+      print('✅ Signup successful for: $email');
+      _showSuccess('Account created successfully! Please sign in.');
 
-      _showSuccess('Account created successfully!');
       setState(() {
         _isSignupMode = false;
         _isLoading = false;
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+        _nameController.clear();
       });
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Signup failed');
+    } catch (e) {
+      print('❌ Signup failed: $e');
+      _showError(e.toString());
       setState(() => _isLoading = false);
     }
   }
 
-  // ---------------- EXISTING UI BELOW (UNCHANGED) ----------------
+  // ---------------- UI BELOW (UNCHANGED) ----------------
 
   @override
   Widget build(BuildContext context) {

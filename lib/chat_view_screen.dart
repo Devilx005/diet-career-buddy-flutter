@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../conversation.dart';
 import '../conversation_storage.dart';
 import '../gemini_service.dart';
+import '../auth_service.dart';
 
 class ChatViewScreen extends StatefulWidget {
   final Conversation conversation;
@@ -19,14 +20,19 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
   String _currentResponse = '';
   bool _isLoading = false;
 
+  final AuthService _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
+    print('🔵 ChatViewScreen init for conversation ${widget.conversation.id}');
     _messages = List.from(widget.conversation.messages);
   }
 
   Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || _isLoading) return;
+
+    print('🟣 _sendMessage called with: $text');
 
     final userMessage = Message(
       text: text,
@@ -43,27 +49,52 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
 
     _scrollToBottom();
 
-    await GeminiService.chatStreaming(text, (chunk) {
-      setState(() {
-        _currentResponse = chunk;
-        _isLoading = false;
+    try {
+      await GeminiService.chatStreaming(text, (chunk) {
+        setState(() {
+          _currentResponse = chunk;
+          _isLoading = false;
+        });
+        _scrollToBottom();
       });
-      _scrollToBottom();
-    });
 
-    final assistantMessage = Message(
-      text: _currentResponse,
-      isUser: false,
-      timestamp: DateTime.now(),
-    );
+      final assistantMessage = Message(
+        text: _currentResponse,
+        isUser: false,
+        timestamp: DateTime.now(),
+      );
 
-    setState(() {
-      _messages.add(assistantMessage);
-      _currentResponse = '';
-    });
+      setState(() {
+        _messages.add(assistantMessage);
+        _currentResponse = '';
+      });
 
-    // Save updated conversation
-    await _saveConversation();
+      // 1) Save updated local conversation
+      await _saveConversation();
+      print('✅ Local conversation saved');
+
+      // 2) Save this Q&A pair to Firestore
+      final chatId = await _authService.saveChatMessage(
+        message: userMessage.text,
+        response: assistantMessage.text,
+        category: 'career_guidance',
+      );
+      print('✅ Firestore chat saved with id=$chatId');
+    } catch (e) {
+      print('❌ Error in _sendMessage: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send message: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _saveConversation() async {
@@ -81,7 +112,7 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
@@ -91,15 +122,15 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1A1A1A),
+      backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
-        backgroundColor: Color(0xFF212121),
+        backgroundColor: const Color(0xFF212121),
         title: Text(
           widget.conversation.title,
-          style: TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Color(0xFF10A37F)),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF10A37F)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -108,7 +139,7 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
           // Messages area
           Expanded(
             child: _messages.isEmpty
-                ? Center(
+                ? const Center(
               child: Text(
                 'No messages',
                 style: TextStyle(color: Colors.white38),
@@ -116,8 +147,9 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
             )
                 : ListView.builder(
               controller: _scrollController,
-              padding: EdgeInsets.all(16),
-              itemCount: _messages.length + (_currentResponse.isNotEmpty || _isLoading ? 1 : 0),
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length +
+                  (_currentResponse.isNotEmpty || _isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index < _messages.length) {
                   return _buildMessageBubble(_messages[index]);
@@ -137,8 +169,8 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
 
           // Input area
           Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
               color: Color(0xFF1E1E1E),
               border: Border(
                 top: BorderSide(color: Colors.white10),
@@ -150,7 +182,7 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Color(0xFF2D2D2D),
+                      color: const Color(0xFF2D2D2D),
                       borderRadius: BorderRadius.circular(25),
                       border: Border.all(
                         color: Colors.grey.withOpacity(0.3),
@@ -161,9 +193,9 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.add, color: Colors.grey),
+                          icon: const Icon(Icons.add, color: Colors.grey),
                           onPressed: () {},
-                          padding: EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                         ),
                         Expanded(
                           child: TextField(
@@ -171,32 +203,37 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
                             enabled: !_isLoading,
                             maxLines: 3,
                             minLines: 1,
-                            style: TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
                               hintText: 'Continue conversation...',
                               hintStyle: TextStyle(color: Colors.grey),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 4,
+                              ),
                             ),
                             onSubmitted: _sendMessage,
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.mic, color: Colors.grey),
+                          icon: const Icon(Icons.mic, color: Colors.grey),
                           onPressed: () {},
-                          padding: EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                         ),
                       ],
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 FloatingActionButton(
                   mini: true,
-                  onPressed: _isLoading ? null : () => _sendMessage(_controller.text),
-                  backgroundColor: _isLoading ? Colors.grey : Color(0xFF10A37F),
+                  onPressed:
+                  _isLoading ? null : () => _sendMessage(_controller.text),
+                  backgroundColor:
+                  _isLoading ? Colors.grey : const Color(0xFF10A37F),
                   child: _isLoading
-                      ? SizedBox(
+                      ? const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
@@ -204,7 +241,8 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
                       strokeWidth: 2,
                     ),
                   )
-                      : Icon(Icons.arrow_upward, color: Colors.white, size: 20),
+                      : const Icon(Icons.arrow_upward,
+                      color: Colors.white, size: 20),
                 ),
               ],
             ),
@@ -218,13 +256,14 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: message.isUser ? Color(0xFF10A37F) : Color(0xFF2D2D2D),
+          color:
+          message.isUser ? const Color(0xFF10A37F) : const Color(0xFF2D2D2D),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -232,14 +271,14 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
           children: [
             Text(
               message.text,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
                 height: 1.4,
               ),
             ),
             if (!isStreaming) ...[
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 _formatTime(message.timestamp),
                 style: TextStyle(
@@ -255,13 +294,7 @@ class _ChatViewScreenState extends State<ChatViewScreen> {
   }
 
   String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    super.dispose();
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
   }
 }

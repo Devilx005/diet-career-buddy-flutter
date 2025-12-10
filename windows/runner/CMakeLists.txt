@@ -1,19 +1,22 @@
 cmake_minimum_required(VERSION 3.14)
 project(runner LANGUAGES CXX)
 
+# Disable warnings treated as errors for Firebase compatibility
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
 # Define the application target. To change its name, change BINARY_NAME in the
 # top-level CMakeLists.txt, not the value here, or `flutter run` will no longer
 # work.
 #
 # Any new source files that you add to the application should be added here.
 add_executable(${BINARY_NAME} WIN32
-  "flutter_window.cpp"
-  "main.cpp"
-  "utils.cpp"
-  "win32_window.cpp"
-  "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
-  "Runner.rc"
-  "runner.exe.manifest"
+        "flutter_window.cpp"
+        "main.cpp"
+        "utils.cpp"
+        "win32_window.cpp"
+        "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
+        "Runner.rc"
+        "runner.exe.manifest"
 )
 
 # Apply the standard set of build settings. This can be removed for applications

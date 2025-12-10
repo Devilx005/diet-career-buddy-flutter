@@ -8,6 +8,7 @@ import 'firebase_options.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'web_download_stub.dart'
 if (dart.library.html) 'web_download_web.dart';
+import 'auth_service.dart';
 
 
 import 'login_screen.dart';
@@ -214,12 +215,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late bool isLoggedIn;
   late String username;
   String currentDashboard = 'home';
+  final AuthService _authService = AuthService(); // ADD THIS LINE
   final TextEditingController _questionController = TextEditingController();
   final List<Map<String, String>> _messages = [];
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = false;
   String? _currentConversationId;
   bool _wasTemporaryButtonClicked = false;
+  // ... rest of your code
+
 
   String _selectedModel = 'Llama 3.1 70B';
   final List<Map<String, String>> _availableModels = [
@@ -655,6 +659,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         )).toList(),
       );
       await ConversationStorage.saveConversation(conversation);
+
+      // Save to Firestore - ADD THIS BLOCK
+      try {
+        await _authService.saveChatMessage(
+          message: userMessage,
+          response: fullResponse,
+          category: 'career_guidance',
+        );
+        print('✅ Chat saved to Firestore');
+      } catch (e) {
+        print('❌ Firestore save failed: $e');
+      }
     }
 
     Future.delayed(const Duration(milliseconds: 100), () {
