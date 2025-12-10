@@ -50,6 +50,6 @@ flutter:
 
   # Use a dummy env file for web build compatibility
   assets:
-      - .env
-    #-.envdummy
-    #- web/assets/Pathify AI.apk
+     # - .env
+    -.envdummy
+    - web/assets/Pathify AI.apk
