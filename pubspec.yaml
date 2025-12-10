@@ -48,8 +48,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Use a dummy env file for web build compatibility
   assets:
-     # - .env
-    -.envdummy
+    - .envdummy
     - web/assets/Pathify AI.apk
